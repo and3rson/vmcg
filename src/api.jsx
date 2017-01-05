@@ -77,8 +77,76 @@ export class Api {
                 messages.forEach((message) => {
                     message.user = users[message.from_id].first_name + ' ' + users[message.from_id].last_name;
                 });
+                messages.reverse();
                 callback(messages);
             });
         });
+    }
+
+    sendMessage(user_id, message) {
+        this.request('messages.send', {user_id: user_id, message: message}, (json) => {
+            console.log('Message sent?', json);
+        });
+    }
+
+    getLongPollServer(callback) {
+        this.request('messages.getLongPollServer', {}, (json) => {
+            callback(json.response)
+        });
+    }
+
+    // getLongPollHistory(ts, callback) {
+    //     this.request('messages.getLongPollHistory', {ts: ts}, (json) => {
+    //         callback(json.response);
+    //     });
+    // }
+
+    _poll(server, key, ts, callback) {
+        console.log('Polling...');
+        fetch(`https://${server}?act=a_check&key=${key}&ts=${ts}&wait=15&mode=2&version=1`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+        }).then(
+            (response) => response.json()
+        ).then(
+            (json) => {
+                console.log('Poll result:', json);
+                json.updates.forEach((update) => {
+                    if (update[0] == 4) {
+                        // New message
+                        this.getUsers([update[3]], (users) => {
+                            callback({
+                                user: users[update[3]].first_name + ' ' + users[update[3]].last_name,
+                                uid: update[3],
+                                body: update[6],
+                                out: update[2] & 2
+                            });
+                        });
+                    }
+                });
+                // callback(json);
+                setTimeout(this._poll.bind(this, server, key, json.ts, callback), 0);
+            }
+        ).catch((error) => {
+            console.error(error);
+            setTimeout(this._poll.bind(this, server, key, ts, callback), 3000);
+        });
+
+        // this.getLongPollHistory(ts, (info) => {
+        // });
+    }
+
+    startPolling(callback) {
+        this.getLongPollServer((info) => {
+            console.log('Long poll info:', info);
+            this._poll(info.server, info.key, info.ts, callback);
+        });
+    }
+
+    stopPolling(callback) {
+
     }
 }

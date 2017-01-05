@@ -40,7 +40,8 @@ class MessageItem extends React.Component {
     }
     render() {
         return (<div>
-            <div className="card-panel" style={{float: 'none'}}>{this.props.message.user}: {this.props.message.body}</div>
+            <div className="card-panel" style={{float: this.props.message.out ? 'right' : 'left'}}>{this.props.message.out ? 'Me' : this.props.message.user}: {this.props.message.body}</div>
+            <div style={{clear: 'both'}}></div>
         </div>);
     }
 }
@@ -50,15 +51,23 @@ class Dialog extends React.Component {
         super(props);
         this.state = {
             dialogId: null,
-            messages: []
+            messages: [],
+            message: ''
         };
         dialog = this;
     }
     loadDialog(dialogId) {
         this.setState({dialogId: dialogId, messages: []});
         api.getHistory(dialogId, (messages) => {
-            console.log('Got history');
+            console.log('Got history for dialog', dialogId);
             this.setState({messages: messages});
+        });
+    }
+    addMessage(message) {
+        this.state.messages.push(message);
+
+        this.setState({
+            messages: this.state.messages,
         });
     }
     render() {
@@ -66,13 +75,24 @@ class Dialog extends React.Component {
             return <div>Select dialog</div>;
         }
         window.setTimeout(() => {
-            $('.dialog').animate({scrollTop: $('.dialog').height()});
+            $('.messages').animate({scrollTop: $('.messages-items').height()}, 200);
         }, 0);
         return (<div className="dialog">
             <div className="messages">
-                {this.state.messages.reverse().map((message, i) => {
-                    return (<MessageItem message={message} key={i} />);
-                })}
+                <div className="messages-items">
+                    {this.state.messages.map((message, i) => {
+                        return (<MessageItem message={message} key={i} />);
+                    })}
+                </div>
+            </div>
+            <div className="panel">
+                <div className="horizontal-flex">
+                    <input type="text" className="flex-expand" placeholder="Type your message..." value={this.state.message} onChange={(e) => this.setState({message: e.target.value})} />
+                    <input type="button" className="btn" value="Send" onClick={(e) => {
+                        api.sendMessage(this.state.dialogId, this.state.message);
+                        this.setState({message: ''});
+                    }} />
+                </div>
             </div>
         </div>);
     }
@@ -88,6 +108,27 @@ class App extends React.Component {
 
         api.authorize(() => {
             console.log('Welcome!');
+
+            api.startPolling((message) => {
+                console.log('New message:', message);
+
+                var found = false;
+                this.state.dialogs.forEach((dialog) => {
+                    if (dialog.uid == message.uid) {
+                        found = true;
+                        dialog.from = message.from;
+                        dialog.body = message.body;
+                    }
+                });
+                if (!found) {
+                    this.state.dialogs.unshift(message);
+                }
+                this.setState({dialogs: this.state.dialogs});
+
+                if (message.uid == dialog.state.dialogId) {
+                    dialog.addMessage(message);
+                }
+            });
 
             api.getDialogs((dialogs) => {
                 this.setState({dialogs: dialogs});

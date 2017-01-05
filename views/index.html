@@ -38,9 +38,28 @@
         /*line-height: 42px !important;*/
       }
 
-      .sidebar, .dialog {
+      .sidebar {
         height: 100vh;
         overflow-y: auto;
+      }
+      .dialog {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .messages {
+        overflow-y: auto;
+        /*flex: 9;*/
+      }
+      .panel {
+        /*flex: 1;*/
+      }
+      .horizontal-flex {
+        display: flex;
+        flex-direction: row;
+      }
+      .flex-expand {
+        flex: 100;
       }
     </style>
   </head>
