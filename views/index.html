@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Peek App</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="../node_modules/tooltipster/dist/css/tooltipster.bundle.min.css" />
+    <link rel="stylesheet" type="text/css" href="../node_modules/materialize-css/dist/css/materialize.css" />
+
+    <script>
+      // Avoid collision with Babel
+      window.electronRequire = require;
+    </script>
+
+    <script>_require = window.require; _define = window.define; _module = window.module; window.require = undefined; window.define = undefined; window.module = undefined;</script>
+    <script type="text/javascript" src="../node_modules/jquery/dist/jquery.js"></script>
+    <script>window.require = _require; window.define = _define; window.module = _module;</script>
+    <script type="text/javascript" src="../node_modules/react/dist/react.js"></script>
+    <script type="text/javascript" src="../node_modules/react-dom/dist/react-dom.js"></script>
+    <script type="text/javascript" src="../node_modules/tooltipster/dist/js/tooltipster.bundle.min.js"></script>
+    <script type="text/javascript" src="../node_modules/hammerjs/hammer.min.js"></script>
+    <script type="text/javascript" src="../node_modules/materialize-css/dist/js/materialize.js"></script>
+
+    <style type="text/css">
+      page {
+        display: block;
+        min-height: 100vh;
+      }
+      page > .row {
+        margin-bottom: 0 !important;
+      }
+      .nav-transparent {
+        background: none !important;
+        box-shadow: none !important;
+      }
+      .nav-transparent a, .nav-transparent ul a {
+        color: #666 !important;
+        /*line-height: 42px !important;*/
+      }
+
+      .sidebar, .dialog {
+        height: 100vh;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body class="grey lighten-4">
+    <div id="root"></div>
+
+    <script type="text/javascript" src="../gen/bundle.js"></script>
+  </body>
+
+  <script>
+    // You can also require other files to run in this process
+  </script>
+</html>
