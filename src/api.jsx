@@ -47,11 +47,13 @@ export class Api {
     }
 
     getDialogs(callback) {
-        this.request('messages.getDialogs', {}, (json) => {
+        this.request('messages.getDialogs', {preview_length: 40}, (json) => {
             var dialogs = json.response.slice(1);
+            console.log('Dialogs:', dialogs);
             this.getUsers(dialogs.map((dialog) => dialog.uid), (users) => {
                 dialogs.forEach((dialog) => {
-                    dialog.user = users[dialog.uid].first_name + ' ' + users[dialog.uid].last_name;
+                    dialog.user = users[dialog.uid];
+                    dialog.body = dialog.body.replace(/\<br\>/, '\n');
                 });
                 callback(dialogs);
             });
@@ -59,10 +61,11 @@ export class Api {
     }
 
     getUsers(user_ids, callback) {
-        this.request('users.get', {user_ids: user_ids.join(','), fields: 'screen_name'}, (json) => {
+        this.request('users.get', {user_ids: user_ids.join(','), fields: 'screen_name,photo_100'}, (json) => {
             var usersObject = {};
             var users = json.response;
             users.forEach((user) => {
+                user.full_name = user.first_name + ' ' + user.last_name;
                 usersObject[user.uid] = user;
             });
             callback(usersObject);
@@ -75,7 +78,8 @@ export class Api {
             console.log('Messages:', messages);
             this.getUsers(messages.map((message) => message.from_id), (users) => {
                 messages.forEach((message) => {
-                    message.user = users[message.from_id].first_name + ' ' + users[message.from_id].last_name;
+                    message.user = users[message.from_id];
+                    message.body = message.body.replace(/\<br\>/, '\n')
                 });
                 messages.reverse();
                 callback(messages);
@@ -119,9 +123,9 @@ export class Api {
                         // New message
                         this.getUsers([update[3]], (users) => {
                             callback({
-                                user: users[update[3]].first_name + ' ' + users[update[3]].last_name,
+                                user: users[update[3]],
                                 uid: update[3],
-                                body: update[6],
+                                body: update[6].replace(/\<br\>/, '\n'),
                                 out: update[2] & 2
                             });
                         });
