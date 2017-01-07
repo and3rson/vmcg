@@ -8,16 +8,19 @@ var currentDialogId = null;
 class Spinner extends React.Component {
     render() {
         return (
-            <div className="preloader-wrapper big active">
-                <div className="spinner-layer spinner-blue-only">
-                    <div className="circle-clipper left">
-                        <div className="circle"></div>
-                    </div><div className="gap-patch">
-                        <div className="circle"></div>
-                    </div><div className="circle-clipper right">
-                        <div className="circle"></div>
+            <div>
+                <div className="preloader-wrapper big active">
+                    <div className="spinner-layer spinner-blue-only">
+                        <div className="circle-clipper left">
+                            <div className="circle"></div>
+                        </div><div className="gap-patch">
+                            <div className="circle"></div>
+                        </div><div className="circle-clipper right">
+                            <div className="circle"></div>
+                        </div>
                     </div>
                 </div>
+                <div style={{color: '#4285f4', marginTop: '10px', fontWeight: 300, fontSize: 24}}>{this.props.message}</div>
             </div>
         );
     }
@@ -152,14 +155,13 @@ class Dialog extends React.Component {
         if (this.state.loading) {
             content = (
                 <div className="flex-expand flex-center center-align">
-                    <Spinner />
+                    <Spinner message="Loading dialog" />
                 </div>
             );
         } else {
             content = (
                 <div className="messages">
                     <div className="messages-items">
-                        {this.state.loading ? <Spinner/> : ''}
                         {this.state.messages.map((message, i) => {
                             return (<MessageItem message={message} key={i} />);
                         })}
@@ -193,37 +195,49 @@ class App extends React.Component {
         super(props);
 
         this.state = {
-            dialogs: []
+            dialogs: [],
+            state: 1
         };
 
         api.authorize(() => {
             console.log('Welcome!');
 
-            api.startPolling((message) => {
-                console.log('New message:', message);
+            this.setState({state: 2});
 
-                var found = false;
-                this.state.dialogs.forEach((dialog, i) => {
-                    if (dialog.uid == message.uid) {
-                        found = i;
-                        dialog.from = message.from;
-                        dialog.body = message.body;
+            api.startPolling({
+                onEvent: (message) => {
+                    console.log('New message:', message);
+
+                    var found = false;
+                    this.state.dialogs.forEach((dialog, i) => {
+                        if (dialog.uid == message.uid) {
+                            found = i;
+                            dialog.from = message.from;
+                            dialog.body = message.body;
+                        }
+                    });
+                    if (found === false) {
+                        this.state.dialogs.unshift(message);
+                    } else {
+                        this.state.dialogs.unshift(this.state.dialogs.splice(found, 1)[0]);
                     }
-                });
-                if (found === false) {
-                    this.state.dialogs.unshift(message);
-                } else {
-                    this.state.dialogs.unshift(this.state.dialogs.splice(found, 1)[0]);
-                }
-                this.setState({dialogs: this.state.dialogs});
+                    this.setState({dialogs: this.state.dialogs});
 
-                if (message.uid == dialog.state.dialogId) {
-                    dialog.addMessage(message);
-                }
-            });
+                    if (message.uid == dialog.state.dialogId) {
+                        dialog.addMessage(message);
+                    }
+                },
+                onDisconnect: () => {
+                    console.log('Disconnected');
+                    this.setState({state: 3});
+                },
+                onConnect: () => {
+                    console.log('Connected');
 
-            api.getDialogs((dialogs) => {
-                this.setState({dialogs: dialogs});
+                    api.getDialogs((dialogs) => {
+                        this.setState({state: 0, dialogs: dialogs});
+                    });
+                }
             });
         });
         app = this;
@@ -236,19 +250,41 @@ class App extends React.Component {
         dialog.loadDialog(dialogId);
     }
 
+    getStateMessage() {
+        if (this.state.state == 1) {
+            return 'Waiting for authorization';
+        } else if (this.state.state == 2) {
+            return 'Connecting';
+        } else if (this.state.state == 3) {
+            return 'Trying to reconnect'
+        }
+    }
+
     render() {
-        return (
-            <page>
-                <div className="row">
-                    <div className="col s6 m4 l2 no-padding">
-                        <Sidebar/>
+        if (this.state.state == 0) {
+            return (
+                <page>
+                    <div className="row">
+                        <div className="col s6 m4 l2 no-padding">
+                            <Sidebar/>
+                        </div>
+                        <div className="col s6 m8 l10 no-padding">
+                            <Dialog dialogId={this.state.dialogId} />
+                        </div>
                     </div>
-                    <div className="col s6 m8 l10 no-padding">
-                        <Dialog dialogId={this.state.dialogId} />
+                </page>
+            );
+        } else {
+            return (
+                <page className="horizontal-flex">
+                    <div className="flex-expand flex-center">
+                        <div className="center-align">
+                            <Spinner message={this.getStateMessage()} />
+                        </div>
                     </div>
-                </div>
-            </page>
-        );
+                </page>
+            );
+        }
     }
 }
 

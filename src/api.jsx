@@ -2,8 +2,9 @@ const storage = electronRequire('electron-json-storage');
 
 export class Api {
     authorize(callback) {
+        // storage.set('data', null);
         storage.get('data', (error, data) => {
-            if (data.token) {
+            if (data && data.token) {
                 console.log('Cached token:', data.token);
                 this.token = data.token;
                 callback();
@@ -27,7 +28,7 @@ export class Api {
         });
     }
 
-    request(method, data, callback) {
+    request(method, data, callback, onError) {
         data = data || {};
         data = $.extend({}, data, {access_token: this.token});
         fetch('https://api.vk.com/method/' + method + '?' + $.param(data), {
@@ -42,7 +43,8 @@ export class Api {
         ).then(
             (json) => callback(json)
         ).catch((error) => {
-            console.error(error);
+            console.error('request error:', error);
+            onError && onError(error);
         });
     }
 
@@ -57,6 +59,8 @@ export class Api {
                 });
                 callback(dialogs);
             });
+        }, (error) => {
+            callback([]);
         });
     }
 
@@ -93,10 +97,10 @@ export class Api {
         });
     }
 
-    getLongPollServer(callback) {
+    getLongPollServer(callback, onError) {
         this.request('messages.getLongPollServer', {}, (json) => {
             callback(json.response)
-        });
+        }, onError);
     }
 
     // getLongPollHistory(ts, callback) {
@@ -105,9 +109,10 @@ export class Api {
     //     });
     // }
 
-    _poll(server, key, ts, callback) {
+    _poll(server, key, ts, callbacks, isConnected) {
+        var wait = isConnected ? 15 : 1;
         console.log('Polling...');
-        fetch(`https://${server}?act=a_check&key=${key}&ts=${ts}&wait=15&mode=2&version=1`, {
+        fetch(`https://${server}?act=a_check&key=${key}&ts=${ts}&wait=${wait}&mode=2&version=1`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
@@ -122,7 +127,7 @@ export class Api {
                     if (update[0] == 4) {
                         // New message
                         this.getUsers([update[3]], (users) => {
-                            callback({
+                            callbacks.onEvent({
                                 user: users[update[3]],
                                 uid: update[3],
                                 body: update[6].replace(/\<br\>/, '\n'),
@@ -132,21 +137,32 @@ export class Api {
                     }
                 });
                 // callback(json);
-                setTimeout(this._poll.bind(this, server, key, json.ts, callback), 0);
+                setTimeout(this._poll.bind(this, server, key, json.ts, callbacks, true), 0);
             }
         ).catch((error) => {
+            if (isConnected === true) {
+                callbacks.onDisconnect();
+                isConnected = false;
+            }
             console.error(error);
-            setTimeout(this._poll.bind(this, server, key, ts, callback), 3000);
+            setTimeout(this.startPolling.bind(this, callbacks, isConnected), 3000);
         });
 
         // this.getLongPollHistory(ts, (info) => {
         // });
     }
 
-    startPolling(callback) {
+    startPolling(callbacks, isConnected) {
         this.getLongPollServer((info) => {
+            callbacks.onConnect();
             console.log('Long poll info:', info);
-            this._poll(info.server, info.key, info.ts, callback);
+            this._poll(info.server, info.key, info.ts, callbacks, true);
+        }, (error) => {
+            if (isConnected == true) {
+                callbacks.onDisconnect();
+                isConnected = false;
+            }
+            setTimeout(this.startPolling.bind(this, callbacks, isConnected), 3000);
         });
     }
 
