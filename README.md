@@ -13,6 +13,8 @@ This app is written using ReactJS and Electron.
 
 # install & run
 
+**Note**: `npm install` will take a while because it's gonna download ~200 MB of node-ish stuff (sigh.)
+
     $ npm install
     $ gulp build
     $ npm start
