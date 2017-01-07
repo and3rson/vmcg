@@ -11,12 +11,20 @@ This app is written using ReactJS and Electron.
 - node
 - npm
 
+# stack
+
+- ReactJS
+- Electron
+- Browserify
+- Babel (ES6)
+- Gulp
+
 # install & run
 
 **Note**: `npm install` will take a while because it's gonna download ~200 MB of node-ish stuff (sigh.)
 
     $ npm install
-    $ gulp build
+    $ npm run build
     $ npm start
 
 # state

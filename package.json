@@ -4,7 +4,9 @@
   "description": "Client for peek notes.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "./node_modules/gulp/bin/gulp.js build",
+    "watch": "./node_modules/gulp/bin/gulp.js"
   },
   "repository": "https://github.com/and3rson/peek-desktop",
   "keywords": [
