@@ -127,13 +127,15 @@ export class Api {
                     if (update[0] == 4) {
                         // New message
                         this.getUsers([update[3]], (users) => {
-                            callbacks.onEvent({
+                            callbacks.onMessage({
                                 user: users[update[3]],
                                 uid: update[3],
                                 body: update[6].replace(/\<br\>/, '\n'),
                                 out: update[2] & 2
                             });
                         });
+                    } else if (update[0] == 7) {
+                        callbacks.onRead(update[1]);
                     }
                 });
                 // callback(json);

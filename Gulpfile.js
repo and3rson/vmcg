@@ -1,5 +1,6 @@
 var gulp = require('gulp');
 var babel = require('gulp-babel');
+var es2015 = require('babel-preset-es2015');
 var watch = require('gulp-watch');
 var browserify = require('browserify');
 var source = require('vinyl-source-stream');
@@ -14,7 +15,8 @@ gulp.task('babel', function(){
                 'transform-react-jsx'
             ],
             presets: [
-                'es2015'
+                es2015,
+                require('babel-preset-stage-2'),
             ]
         }))
         .pipe(gulp.dest('./gen/'))

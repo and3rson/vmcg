@@ -49,32 +49,37 @@ class DialogItem extends React.Component {
             return this.props.dialog.uid;
         }
     }
-    getStyle() {
-        var style = {};
-        if (this.getDialogID() == currentDialogId) {
-            style.background = '#2277CC';
-            style.color = '#FFFFFF';
-        } else if (this.props.dialog.out == 0 && this.props.dialog.read_state == 0) {
-            style.background = '#DDEEFF';
-            style.color = '#2277CC';
-        } else {
-            style.color = '#2277CC';
+    getClass() {
+        var classes = ['collection-item dialog-item'];
+
+        if (this.props.dialog.out == 0 && this.props.dialog.read_state == 0) {
+            classes.push('dialog-item-unread-in');
+        } else if (this.props.dialog.out == 1 && this.props.dialog.read_state == 0) {
+            classes.push('dialog-item-unread-out');
         }
-        return style;
+
+        if (this.getDialogID() == currentDialogId) {
+            classes.push('dialog-item-current');
+        }
+
+        return classes.join(' ');
     }
     render() {
         return (
-            <a href="#" className="collection-item" onClick={() => {
+            <a href="#" className={this.getClass()} onClick={() => {
                 app.loadDialog(this.getDialogID())
-            }} style={this.getStyle()}>
+            }}>
                 <div className="horizontal-flex">
                     <div>
                         <img src={this.props.dialog.user.photo_100} width="50" height="50" />
                     </div>
                     <div className="flex-expand" style={{paddingLeft: '10px'}}>
                         <b>{this.props.dialog.user.full_name}</b><br />
-                        {this.props.dialog.body}
-                        </div>
+                        {this.props.dialog.body ? this.props.dialog.body : 'Attachment'}
+                    </div>
+                    <div>
+                        <div className="pin"></div>
+                    </div>
                 </div>
             </a>
         );
@@ -87,6 +92,7 @@ class MessageItem extends React.Component {
     }
     render() {
         var sender;
+        // var attachment = (this.props.message.attachments && this.props.message.attachments[0].photo) ? <div><img src={this.props.message.attachments[0].photo.src} class="responsive-img" /></div> : '';
         if (this.props.message.out) {
             sender = <div><b>You</b></div>;
         } else {
@@ -105,9 +111,25 @@ class MessageItem extends React.Component {
             <div className="card-panel" style={{float: this.props.message.out ? 'right' : 'left', padding: '5px', marginTop: '0', marginBottom: '15px', minWidth: '30%', maxWidth: '80%'}}>
                 {sender}
                 {this.props.message.body}
+                {this.getAttachments()}
             </div>
             <div style={{clear: 'both'}}></div>
         </div>);
+    }
+    getAttachments() {
+        var output = '';
+        if (!this.props.message.attachments) {
+            return;
+        }
+        this.props.message.attachments.forEach((attachment) => {
+            console.log(attachment);
+            if (attachment.type == 'photo') {
+                output = <div><img src={attachment.photo.src_big} className="responsive-img" /></div>;
+            } else {
+                output = <div className="error">Unsupported attachment type: {attachment.type}</div>;
+            }
+        });
+        return output;
     }
 }
 
@@ -205,7 +227,7 @@ class App extends React.Component {
             this.setState({state: 2});
 
             api.startPolling({
-                onEvent: (message) => {
+                onMessage: (message) => {
                     console.log('New message:', message);
 
                     var found = false;
@@ -214,6 +236,9 @@ class App extends React.Component {
                             found = i;
                             dialog.from = message.from;
                             dialog.body = message.body;
+                            if (message.out) {
+                                dialog.read_state = 0;
+                            }
                         }
                     });
                     if (found === false) {
@@ -226,6 +251,17 @@ class App extends React.Component {
                     if (message.uid == dialog.state.dialogId) {
                         dialog.addMessage(message);
                     }
+                },
+                onRead: (uid) => {
+                    this.state.dialogs.forEach((dialog, i) => {
+                        if (dialog.uid == uid) {
+                            dialog.read_state = 1;
+                        }
+                    });
+                    if (uid == dialog.state.dialogId) {
+                        // dialog.addMessage(message);
+                    }
+                    this.setState({dialogs: this.state.dialogs});
                 },
                 onDisconnect: () => {
                     console.log('Disconnected');
@@ -265,10 +301,10 @@ class App extends React.Component {
             return (
                 <page>
                     <div className="row">
-                        <div className="col s6 m4 l2 no-padding">
+                        <div className="col s6 m4 l3 no-padding">
                             <Sidebar/>
                         </div>
-                        <div className="col s6 m8 l10 no-padding">
+                        <div className="col s6 m8 l9 no-padding">
                             <Dialog dialogId={this.state.dialogId} />
                         </div>
                     </div>
